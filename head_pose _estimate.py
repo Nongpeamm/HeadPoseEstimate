@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import time
+import csv 
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5, max_num_faces=5)
@@ -98,6 +99,12 @@ while cap.isOpened():
             else:
                 direct_in = 0
                 cv2.putText(image, "go out from focus", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            
+            row_list = ["Distance from focus", "slope", "face direct"]
+            row = [d, m, direct_in]
+            with open('data.csv', 'a+', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(row)
             
             # input d , direct_in, m in ML output look/not-look
             #conclusion
