@@ -114,9 +114,9 @@ while cap.isOpened():
         cv2.putText(image, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow('MediaPipe FaceMesh', image)
         
-        # if press q, then quit
-        if cv2.waitKey(5) & 0xFF == 27:
-            break
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord("q"):
+        break
         
 cap.release()
 cv2.destroyAllWindows()

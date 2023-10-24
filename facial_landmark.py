@@ -28,5 +28,6 @@ while cap.isOpened():
             mp_drawing.draw_landmarks(img, face_landmarks, mp_face_mesh.FACEMESH_CONTOURS, draw_spec, draw_spec)
 
     cv2.imshow('MediaPipe FaceMesh', img)
-    if cv2.waitKey(5) & 0xFF == 27:
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord("q"):
         break
