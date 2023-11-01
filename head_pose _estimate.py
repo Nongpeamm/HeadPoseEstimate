@@ -36,18 +36,16 @@ while cap.isOpened():
     focus_y = int(img_h / 2)
     cv2.circle(image, (focus_x,focus_y), radius= 1, color=(0, 0, 255), thickness=5)
 
-    # Draw face detections of each face.
-    if not results_face_detect.detections:
-      continue
-
     if results_face_detect.detections:
       for detection in results_face_detect.detections:
         mp_drawing.draw_detection(image, detection)
         # print(mp_face_detection.get_key_point(detection, mp_face_detection.FaceKeyPoint.NOSE_TIP))
+        #bounding box
         xmin = detection.location_data.relative_bounding_box.xmin
         ymin = detection.location_data.relative_bounding_box.ymin
         width = detection.location_data.relative_bounding_box.width
         height = detection.location_data.relative_bounding_box.height
+        #get face image
         face_img = image[int(ymin * img_h):int((ymin + height) * img_h), int(xmin * img_w):int((xmin + width) * img_w)]
         print("xmin " + str(xmin))
         print("ymin " + str(ymin))
