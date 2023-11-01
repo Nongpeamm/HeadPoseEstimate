@@ -33,7 +33,7 @@ while cap.isOpened():
     cv2.circle(image, (focus_x,focus_y), radius= 1, color=(0, 0, 255), thickness=5)
     
     if results.multi_face_landmarks:
-        for face_landmarks in results.multi_face_landmarks:
+        for i, face_landmarks in enumerate(results.multi_face_landmarks):
             face_3d = []
             face_2d = []
             for idx, lm in enumerate(face_landmarks.landmark):
@@ -84,6 +84,8 @@ while cap.isOpened():
             
             p1 = (int(nose_2d[0]), int(nose_2d[1]))
             p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
+
+            cv2.putText(image, text, (p1[0]-50, p1[1]-150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             if p2[0] - p1[0] == 0:
                 d = abs(p1[0]-focus_x)
             else :
@@ -95,12 +97,13 @@ while cap.isOpened():
             d2 = (((p2[0] - focus_x) ** 2) + ((p2[1] - focus_y) ** 2)) ** 0.5  # focus-p2 
             if(d2 < d1) :
                 direct_in = 1
-                cv2.putText(image, "go into focus", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.putText(image, "go into focus", (p1[0]-50, p1[1]-100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             else:
                 direct_in = 0
-                cv2.putText(image, "go out from focus", (100, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.putText(image, "go out from focus", (p1[0]-50, p1[1]-100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             
             row_list = ["Distance from focus", "slope", "face direct"]
+            d = round(d, 2)
             row = [d, m, direct_in]
             with open('data.csv', 'a+', newline='') as file:
                 writer = csv.writer(file)
@@ -111,18 +114,19 @@ while cap.isOpened():
             # look = ML(d,direct_in,m)
             print(f"Distance from focus: {d}")
             cv2.line(image, p1, p2, (0, 255, 0), 3)
-            
+            cv2.putText(image, str(i), (p1[0], p1[1]-50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         end = time.time()
         totalTime = end - start
         
         fps = 1 / totalTime
         # print("FPS: ", fps)
         
-        cv2.putText(image, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        cv2.imshow('MediaPipe FaceMesh', image)
+    else:
+        cv2.putText(image, "No any face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.imshow('MediaPipe FaceMesh', image)
         
     key = cv2.waitKey(1) & 0xFF
-    if key == ord("q"):
+    if key == ord("q") or key == ord("ๆ"):
         break
         
 cap.release()
