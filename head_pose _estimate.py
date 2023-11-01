@@ -8,6 +8,9 @@ mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5, max_num_faces=5)
 mp_drawing = mp.solutions.drawing_utils
 
+mp_face_detection = mp.solutions.face_detection
+face_detection = mp_face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
+
 draw_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1, color=(0, 255, 0))
 
 cap = cv2.VideoCapture(0)
@@ -20,7 +23,8 @@ while cap.isOpened():
     image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
     image.flags.writeable = False
     
-    results = face_mesh.process(image)
+    results_face_mesh = face_mesh.process(image)
+    results_face_detect = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     
     image.flags.writeable = True
     
@@ -32,8 +36,13 @@ while cap.isOpened():
     focus_y = int(img_h / 2)
     cv2.circle(image, (focus_x,focus_y), radius= 1, color=(0, 0, 255), thickness=5)
     
-    if results.multi_face_landmarks:
-        for i, face_landmarks in enumerate(results.multi_face_landmarks):
+    if results_face_detect.detections:
+      for detection in results_face_detect.detections:
+        mp_drawing.draw_detection(image, detection)
+        # print(mp_face_detection.get_key_point(detection, mp_face_detection.FaceKeyPoint.NOSE_TIP))
+    
+    if results_face_mesh.multi_face_landmarks:
+        for i, face_landmarks in enumerate(results_face_mesh.multi_face_landmarks):
             face_3d = []
             face_2d = []
             for idx, lm in enumerate(face_landmarks.landmark):
