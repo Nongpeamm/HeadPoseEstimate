@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import mediapipe as mp
 import time
-import csv 
+import csv , os
 
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5, max_num_faces=5)
@@ -24,7 +24,7 @@ while cap.isOpened():
     image.flags.writeable = False
     
     results_face_mesh = face_mesh.process(image)
-    results_face_detect = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    results_face_detect = face_detection.process(image)
     
     image.flags.writeable = True
     
@@ -35,11 +35,24 @@ while cap.isOpened():
     focus_x = int(img_w / 2)
     focus_y = int(img_h / 2)
     cv2.circle(image, (focus_x,focus_y), radius= 1, color=(0, 0, 255), thickness=5)
-    
+
+    # Draw face detections of each face.
+    if not results_face_detect.detections:
+      continue
+
     if results_face_detect.detections:
       for detection in results_face_detect.detections:
         mp_drawing.draw_detection(image, detection)
         # print(mp_face_detection.get_key_point(detection, mp_face_detection.FaceKeyPoint.NOSE_TIP))
+        xmin = detection.location_data.relative_bounding_box.xmin
+        ymin = detection.location_data.relative_bounding_box.ymin
+        width = detection.location_data.relative_bounding_box.width
+        height = detection.location_data.relative_bounding_box.height
+        face_img = image[int(ymin * img_h):int((ymin + height) * img_h), int(xmin * img_w):int((xmin + width) * img_w)]
+        print("xmin " + str(xmin))
+        print("ymin " + str(ymin))
+        print("width " + str(width))
+        print("height " + str(height))
     
     if results_face_mesh.multi_face_landmarks:
         for i, face_landmarks in enumerate(results_face_mesh.multi_face_landmarks):
@@ -121,7 +134,7 @@ while cap.isOpened():
             # input d , direct_in, m in ML output look/not-look
             #conclusion
             # look = ML(d,direct_in,m)
-            print(f"Distance from focus: {d}")
+            # print(f"Distance from focus: {d}")
             cv2.line(image, p1, p2, (0, 255, 0), 3)
             cv2.putText(image, str(i), (p1[0], p1[1]-50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         end = time.time()
