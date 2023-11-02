@@ -50,10 +50,6 @@ while cap.isOpened():
             width = detection.location_data.relative_bounding_box.width
             height = detection.location_data.relative_bounding_box.height
 
-            #center of bounding box in large image
-            center_x = int((xmin + width / 2) * img_w)
-            center_y = int((ymin + height / 2) * img_h)
-
             # cv2.rectangle(image,
             #   (int(xmin * img_w),  # กว้าง
             #    int(ymin * img_h)),  # สูง
@@ -67,14 +63,18 @@ while cap.isOpened():
             face_center_x = int((xmin + width / 2) * img_w)
             face_center_y = int((ymin + height / 2) * img_h)
 
-            # face mesh
-            results_face_mesh = face_mesh.process(face_img)
-
             # face mesh image size
             fm_img_h, fm_img_w, fm_img_c = face_img.shape
+
             # face mesh image center
             fm_focus_x = int(fm_img_w / 2)
             fm_focus_y = int(fm_img_h / 2)
+
+            # fix bug when face is out of frame
+            if fm_img_h < 0 or fm_img_w < 0:
+                continue
+            # face mesh
+            results_face_mesh = face_mesh.process(face_img)
 
             # if face mesh detected
             if results_face_mesh.multi_face_landmarks:
@@ -134,9 +134,10 @@ while cap.isOpened():
                     # p1 = (int(nose_2d[0]), int(nose_2d[1]))
                     # p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
 
-                    p1 = (int(face_2d[0][0] + xmin * img_w),int(face_2d[0][1] + ymin * img_h))
-                    p2 = (int(face_2d[1][0] + xmin * img_w),
-                            int(face_2d[1][1] + ymin * img_h))
+                    p1 = (int(nose_2d[0] + xmin * img_w),
+                          int(nose_2d[1] + ymin * img_h))
+                    p2 = (int(nose_2d[0] + (xmin * img_w) + y * 2),
+                          int(nose_2d[1] + (ymin * img_h) - x * 2))
 
                     cv2.putText(
                         image, text, (p1[0]-50, p1[1]-150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
