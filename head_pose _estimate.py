@@ -50,8 +50,10 @@ while cap.isOpened():
             width = detection.location_data.relative_bounding_box.width
             height = detection.location_data.relative_bounding_box.height
 
-            xmax = xmin + width
-            ymax = ymin + height
+            #center of bounding box in large image
+            center_x = int((xmin + width / 2) * img_w)
+            center_y = int((ymin + height / 2) * img_h)
+
             # cv2.rectangle(image,
             #   (int(xmin * img_w),  # กว้าง
             #    int(ymin * img_h)),  # สูง
@@ -128,9 +130,13 @@ while cap.isOpened():
 
                     nose_3d_projected, jac = cv2.projectPoints(
                         nose_3d, rotation_vector, translation_vector, cam_matrix, dist_matrix)
+    
+                    # p1 = (int(nose_2d[0]), int(nose_2d[1]))
+                    # p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
 
-                    p1 = (int(nose_2d[0]), int(nose_2d[1]))
-                    p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
+                    p1 = (int(face_2d[0][0] + xmin * img_w),int(face_2d[0][1] + ymin * img_h))
+                    p2 = (int(face_2d[1][0] + xmin * img_w),
+                            int(face_2d[1][1] + ymin * img_h))
 
                     cv2.putText(
                         image, text, (p1[0]-50, p1[1]-150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
@@ -166,7 +172,7 @@ while cap.isOpened():
                     # conclusion
                     # look = ML(d,direct_in,m)
                     # print(f"Distance from focus: {d}")
-                    cv2.line(face_img, p1, p2, (0, 255, 0), 3)
+                    cv2.line(image, p1, p2, (0, 255, 0), 3)
 
                     # คำนวณตำแหน่งที่ต้องการแสดงข้อความ (ยกตัวอย่างว่าตำแหน่งนี้อยู่ด้านล่างกลางของ bounding box)
                     text_x = face_center_x
