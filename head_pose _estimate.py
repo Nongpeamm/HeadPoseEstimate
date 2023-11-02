@@ -45,11 +45,18 @@ while cap.isOpened():
             mp_drawing.draw_detection(image, detection)
             # print(mp_face_detection.get_key_point(detection, mp_face_detection.FaceKeyPoint.NOSE_TIP))
             # bounding box
+            
             xmin = detection.location_data.relative_bounding_box.xmin
             ymin = detection.location_data.relative_bounding_box.ymin
             width = detection.location_data.relative_bounding_box.width
             height = detection.location_data.relative_bounding_box.height
-
+            
+            if(xmin < 0) or (ymin < 0):
+                continue
+            
+            print(round(xmin, 2), round(ymin, 2), round(width, 2), round(height, 2))
+            print(f'ratio : {height/width}')
+            
             # cv2.rectangle(image,
             #   (int(xmin * img_w),  # กว้าง
             #    int(ymin * img_h)),  # สูง
@@ -58,7 +65,7 @@ while cap.isOpened():
             #   (255, 255, 255), 2)
             # get face image
             face_img = image[int(ymin * img_h):int((ymin + height) * img_h),
-                             int(xmin * img_w):int((xmin + width) * img_w)]
+                            int(xmin * img_w):int((xmin + width) * img_w)]
             # find center of face in large image
             face_center_x = int((xmin + width / 2) * img_w)
             face_center_y = int((ymin + height / 2) * img_h)
