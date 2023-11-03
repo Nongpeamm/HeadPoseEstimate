@@ -18,14 +18,11 @@ face_detection = mp_face_detection.FaceDetection(
 draw_spec = mp_drawing.DrawingSpec(
     thickness=1, circle_radius=1, color=(0, 255, 0))
 
-cap = cv2.VideoCapture(0)
 focus_x, focus_y = None, None
 
-while cap.isOpened():
-    success, image = cap.read()
 
-    start = time.time()
 
+def Book(image: cv2.Mat):
     image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
     image.flags.writeable = False
 
@@ -39,9 +36,7 @@ while cap.isOpened():
 
     if results_face_detect.detections:
         for detection in results_face_detect.detections:
-            # print(mp_face_detection.get_key_point(detection, mp_face_detection.FaceKeyPoint.NOSE_TIP))
-            # bounding box
-            
+            # bounding box  
             xmin = detection.location_data.relative_bounding_box.xmin
             ymin = detection.location_data.relative_bounding_box.ymin
             width = detection.location_data.relative_bounding_box.width
@@ -196,11 +191,6 @@ while cap.isOpened():
                     # แสดงข้อความบนภาพ
                     cv2.putText(image, str(i), (text_x, text_y),
                                 cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
-                end = time.time()
-                totalTime = end - start
-
-                fps = 1 / totalTime
-                # print("FPS: ", fps)
 
     else:
         cv2.putText(image, "No any face detected", (50, 50),
@@ -211,15 +201,5 @@ while cap.isOpened():
         global focus_x, focus_y
         if event == cv2.EVENT_LBUTTONUP:
             focus_x, focus_y = x, y
-            radius = 100
-            color = (0, 0, 255)  # Red color in BGR
-            thickness = 5
 
     cv2.setMouseCallback('MediaPipe FaceMesh', draw_circle)
-   
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord("q") or key == ord("ๆ"):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
