@@ -19,6 +19,7 @@ draw_spec = mp_drawing.DrawingSpec(
     thickness=1, circle_radius=1, color=(0, 255, 0))
 
 cap = cv2.VideoCapture(0)
+focus_x, focus_y = None, None
 
 while cap.isOpened():
     success, image = cap.read()
@@ -35,14 +36,9 @@ while cap.isOpened():
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
     img_h, img_w, img_c = image.shape
-    focus_x = int(img_w / 2)
-    focus_y = int(img_h / 2)
-    cv2.circle(image, (focus_x, focus_y), radius=1,
-               color=(0, 0, 255), thickness=5)
 
     if results_face_detect.detections:
         for detection in results_face_detect.detections:
-            mp_drawing.draw_detection(image, detection)
             # print(mp_face_detection.get_key_point(detection, mp_face_detection.FaceKeyPoint.NOSE_TIP))
             # bounding box
             
@@ -54,15 +50,19 @@ while cap.isOpened():
             if(xmin < 0) or (ymin < 0):
                 continue
             
-            print(round(xmin, 2), round(ymin, 2), round(width, 2), round(height, 2))
-            print(f'ratio : {height/width}')
+            cv2.rectangle(image,
+              (int(xmin * img_w),  # กว้าง
+               int(ymin * img_h)),  # สูง
+              (int((xmin + width) * img_w),
+               int((ymin + detection.location_data.relative_bounding_box.height) * img_h)),
+              (255, 255, 255), 2)
             
-            # cv2.rectangle(image,
-            #   (int(xmin * img_w),  # กว้าง
-            #    int(ymin * img_h)),  # สูง
-            #   (int((xmin + width) * img_w),
-            #    int((ymin + detection.location_data.relative_bounding_box.height) * img_h)),
-            #   (255, 255, 255), 2)
+            if focus_x is None and focus_y is None:
+                cv2.putText(image, "Please select focus point", (50, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                continue
+            else:
+                cv2.circle(image, (focus_x, focus_y), 10, (0, 0, 255), -1)
             # get face image
             face_img = image[int(ymin * img_h):int((ymin + height) * img_h),
                             int(xmin * img_w):int((xmin + width) * img_w)]
@@ -77,9 +77,6 @@ while cap.isOpened():
             fm_focus_x = int(fm_img_w / 2)
             fm_focus_y = int(fm_img_h / 2)
 
-            # fix bug when face is out of frame
-            if fm_img_h < 0 or fm_img_w < 0:
-                continue
             # face mesh
             results_face_mesh = face_mesh.process(face_img)
 
@@ -210,7 +207,16 @@ while cap.isOpened():
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
     cv2.imshow('MediaPipe FaceMesh', image)
+    def draw_circle(event, x, y, flags, param):
+        global focus_x, focus_y
+        if event == cv2.EVENT_LBUTTONUP:
+            focus_x, focus_y = x, y
+            radius = 100
+            color = (0, 0, 255)  # Red color in BGR
+            thickness = 5
 
+    cv2.setMouseCallback('MediaPipe FaceMesh', draw_circle)
+   
     key = cv2.waitKey(1) & 0xFF
     if key == ord("q") or key == ord("ๆ"):
         break
