@@ -1,4 +1,5 @@
-from ultralytics import yolov5
+from ultralytics import YOLO
 
 # Model
-model = yolov5('yolov5s.pt')
+model = YOLO('yolov5su.pt')
+print(model)
