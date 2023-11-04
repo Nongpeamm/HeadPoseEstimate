@@ -29,7 +29,7 @@ face_mesh = mp_face_mesh.FaceMesh(
 def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], bounding_boxs: [dict], img_w:int, img_h:int, focus_x:int, focus_y:int):
     for face_img, bounding_box_dict in zip(face_imgs, bounding_boxs):
         if focus_x is None and focus_y is None:
-            cv2.putText(image, "Please select focus point", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0),  2,)
+            cv2.putText(image, "Please click to select focus point", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0),  2,)
             continue
         else:
             cv2.circle(image, (focus_x, focus_y), 10, (0, 0, 255), -1)
