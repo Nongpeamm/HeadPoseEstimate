@@ -4,7 +4,7 @@ pip install -r requirements.txt
 ```
 We recommended use cuda 11.2 and cuDNN 8.1.0
 
-## Install PyTorch Gpu
+## Install PyTorch GPU
 ```sh
 pip install torch==2.1.0+cu111 torchvision==0.16.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 ```
