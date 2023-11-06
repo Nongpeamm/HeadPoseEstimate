@@ -11,7 +11,7 @@ git submodule update --init
 
 ## Install PyTorch GPU
 ```sh
-pip install torch==2.1.0+cu111 torchvision==0.16.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+pip install torch==2.1.0+cu112 torchvision==0.16.0+cu112 -f https://download.pytorch.org/whl/torch_stable.html
 ```
 
 if you got importError: cannot import name 'builder' from 'google.protobuf.internal'

@@ -29,7 +29,7 @@ def main():
             face_imgs, bounding_boxs = face_detect(image, person_imgs)
             if face_imgs and bounding_boxs:
                 focus_x, focus_y = focus.get_focus()
-                FaceMesh(image, face_imgs, bounding_boxs, img_w, img_h, focus_x, focus_y)
+                FaceMesh(image, face_imgs, person_imgs, bounding_boxs, focus_x, focus_y)
             # find fps
             end = time.time()
             fps = int(1 / (end - start))

@@ -26,15 +26,18 @@ face_mesh = mp_face_mesh.FaceMesh(
 #     cv2.putText(image, str(i), (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
 #     return
 
-def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], bounding_boxs: [dict], img_w:int, img_h:int, focus_x:int, focus_y:int):
+def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], person_imgs: [cv2.Mat], bounding_boxs: [dict], focus_x:int, focus_y:int):
     if focus_x is None and focus_y is None:
         cv2.putText(image, "Please click to select focus point", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0),  2,)
         return
     else:
         cv2.circle(image, (focus_x, focus_y), 10, (0, 0, 255), -1)
-    for face_img, bounding_box_dict in zip(face_imgs, bounding_boxs):
-        face_center_x = int((bounding_box_dict["xmin"] + bounding_box_dict["width"] / 2) * img_w)
-        face_center_y = int((bounding_box_dict['ymin'] + bounding_box_dict["height"] / 2) * img_h)
+
+    for person_img, face_img, bounding_box_dict in zip(person_imgs, face_imgs, bounding_boxs):
+        person_img_h, person_img_w, _ = person_img.shape
+
+        face_center_x = int((bounding_box_dict["xmin"] + bounding_box_dict["width"] / 2) * person_img_w)
+        face_center_y = int((bounding_box_dict['ymin'] + bounding_box_dict["height"] / 2) * person_img_h)
 
         # face mesh image size
         fm_img_h, fm_img_w, _ = face_img.shape
@@ -68,8 +71,8 @@ def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], bounding_boxs: [dict], img_w:in
 
                 focal_length = 1 * fm_img_w
 
-                cam_matrix = np.array([[focal_length, 0, img_w/2],
-                                    [0, focal_length, img_h/2],
+                cam_matrix = np.array([[focal_length, 0, person_img_w/2],
+                                    [0, focal_length, person_img_h/2],
                                     [0, 0, 1]])
 
                 dist_matrix = np.zeros((4, 1), dtype=np.float64)
@@ -101,10 +104,10 @@ def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], bounding_boxs: [dict], img_w:in
                 # p1 = (int(nose_2d[0]), int(nose_2d[1]))
                 # p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
 
-                p1 = (int(nose_2d[0] + bounding_box_dict["xmin"] * img_w),
-                    int(nose_2d[1] + bounding_box_dict["ymin"] * img_h))
-                p2 = (int(nose_2d[0] + (bounding_box_dict["xmin"] * img_w) + y * 2),
-                    int(nose_2d[1] + (bounding_box_dict["ymin"] * img_h) - x * 2))
+                p1 = (int(nose_2d[0] + bounding_box_dict["xmin"] * person_img_w),
+                    int(nose_2d[1] + bounding_box_dict["ymin"] * person_img_h))
+                p2 = (int(nose_2d[0] + (bounding_box_dict["xmin"] * person_img_w) + y * 2),
+                    int(nose_2d[1] + (bounding_box_dict["ymin"] * person_img_h) - x * 2))
 
                 if p2[0] - p1[0] == 0:
                     d = abs(p1[0]-fm_focus_x)
@@ -125,10 +128,10 @@ def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], bounding_boxs: [dict], img_w:in
                 else:
                     direct_in = 0
                     focusText = "go out of focus"
-                cv2.line(image, p1, p2, (0, 255, 0), 3)
+                cv2.line(person_img, p1, p2, (0, 255, 0), 3)
                 # คำนวณตำแหน่งที่ต้องการแสดงข้อความ (ยกตัวอย่างว่าตำแหน่งนี้อยู่ด้านล่างกลางของ bounding box)
                 text_x = face_center_x
-                text_y = int(bounding_box_dict["ymin"] * img_h)  # แสดงที่ด้านบนของ bounding box
+                text_y = int(bounding_box_dict["ymin"] * person_img_h)  # แสดงที่ด้านบนของ bounding box
                 # คำนวณระยะห่างระหว่างจุดกึ่งกลางของ bounding box และจุดที่ต้องการแสดงข้อความ
                 distance_x = text_x - face_center_x
                 distance_y = text_y - face_center_y
@@ -137,9 +140,9 @@ def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], bounding_boxs: [dict], img_w:in
                 # คำนวณขนาดของตัวอักษร (ในที่นี้ใช้สูตรเพื่อปรับขนาดของตัวอักษรตามระยะห่าง)
                 font_scale = max(0.7, 2 - 0.1 * distance)
                 # แสดงข้อความบนภาพ
-                cv2.putText(image, text, (text_x, text_y-60), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
-                cv2.putText(image, focusText, (text_x, text_y-30), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
-                cv2.putText(image, str(i), (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
+                cv2.putText(person_img, text, (text_x, text_y-60), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
+                cv2.putText(person_img, focusText, (text_x, text_y-30), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
+                cv2.putText(person_img, str(i), (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
 
 
                 # row_list = ["Distance from focus", "slope", "face direct"]
