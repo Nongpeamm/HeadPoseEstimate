@@ -8,24 +8,6 @@ mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(
     min_detection_confidence=0.5, min_tracking_confidence=0.5, max_num_faces=5)
 
-# def face_draw(image:cv2.Mat, text: str, focusText: str, p1: tuple(int, int), p2: tuple(int, int)):
-#     cv2.putText(image, text, (p1[0]-50, p1[1]-150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-#     cv2.putText(image, focusText, (p1[0]-50, p1[1]-100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-#     cv2.line(image, p1, p2, (0, 255, 0), 3)
-#     # คำนวณตำแหน่งที่ต้องการแสดงข้อความ (ยกตัวอย่างว่าตำแหน่งนี้อยู่ด้านล่างกลางของ bounding box)
-#     text_x = face_center_x
-#     text_y = int(bounding_box_dict["xmin"] * img_h)  # แสดงที่ด้านบนของ bounding box
-#     # คำนวณระยะห่างระหว่างจุดกึ่งกลางของ bounding box และจุดที่ต้องการแสดงข้อความ
-#     distance_x = text_x - face_center_x
-#     distance_y = text_y - face_center_y
-#     # คำนวณระยะห่างรวม
-#     distance = math.sqrt(distance_x ** 2 + distance_y ** 2)
-#     # คำนวณขนาดของตัวอักษร (ในที่นี้ใช้สูตรเพื่อปรับขนาดของตัวอักษรตามระยะห่าง)
-#     font_scale = max(0.7, 2 - 0.1 * distance)
-#     # แสดงข้อความบนภาพ
-#     cv2.putText(image, str(i), (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 255, 0), 2)
-#     return
-
 def FaceMesh(image:cv2.Mat, face_imgs:[cv2.Mat], person_imgs: [cv2.Mat], bounding_boxs: [dict], focus_x:int, focus_y:int):
     if focus_x is None and focus_y is None:
         cv2.putText(image, "Please click to select focus point", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0),  2,)
