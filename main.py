@@ -1,13 +1,16 @@
 import cv2
 from face_detect import face_detect
 from face_mesh import FaceMesh
-from person_detect import PersonDetect
+from yolo_detect import YoloDetect
 from utils import FocusPoint
 import time
+from ultralytics import YOLO
 
-cap = cv2.VideoCapture('test.mp4')
-# cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture('test.mp4')
+cap = cv2.VideoCapture(0)
 focus = FocusPoint()
+personModel = YOLO("models\yolov5su.pt").cpu()
+fasionModel = YOLO(r"models\fasion50.pt").cpu()
 
 def draw_circle(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
@@ -25,7 +28,9 @@ def main():
             if not success:
                 print("Ignoring empty camera frame.")
                 break
-            person_imgs = PersonDetect(image)
+            person_imgs = YoloDetect(image, personModel, classes=0)
+            for person_img in person_imgs:
+                YoloDetect(person_img, fasionModel)
             face_imgs, bounding_boxs = face_detect(image, person_imgs)
             if face_imgs and bounding_boxs:
                 focus_x, focus_y = focus.get_focus()

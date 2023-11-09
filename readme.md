@@ -2,7 +2,7 @@
 ```sh
 pip install -r requirements.txt
 ```
-We recommended use cuda 11.2 and cuDNN 8.1.0
+We recommended use cuda 11.8 and cuDNN 8.6.0
 
 ## Cloning yolov5 submodule
 ```sh  
@@ -11,7 +11,7 @@ git submodule update --init
 
 ## Install PyTorch GPU
 ```sh
-pip install torch==2.1.0+cu112 torchvision==0.16.0+cu112 -f https://download.pytorch.org/whl/torch_stable.html
+pip install torch==2.1.0+cu118 torchvision==0.16.0+cu118 -f https://download.pytorch.org/whl/torch_stable.html
 ```
 
 if you got importError: cannot import name 'builder' from 'google.protobuf.internal'
