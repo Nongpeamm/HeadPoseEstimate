@@ -9,8 +9,8 @@ from ultralytics import YOLO
 # cap = cv2.VideoCapture('test.mp4')
 cap = cv2.VideoCapture(0)
 focus = FocusPoint()
-personModel = YOLO("models\yolov5su.pt").cpu()
-fasionModel = YOLO(r"models\fasion50.pt").cpu()
+personModel = YOLO(r"models\yolov5nu.pt").cpu()
+fasionModel = YOLO(r"models\yolov5sfasion100.pt").cpu()
 
 def draw_circle(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
