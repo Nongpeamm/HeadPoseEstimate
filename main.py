@@ -6,9 +6,9 @@ from ultralytics import YOLO
 cap = cv2.VideoCapture('test.mp4')
 # cap = cv2.VideoCapture(0)
 focus = FocusPoint()
-personModel = torch.hub.load('ultralytics/yolov5', 'custom', 'models\yolov5s_openvino_model', device='cpu')
-# personModel = YOLO("yolov8n.pt").cpu()
-# fasionModel = YOLO(r"models\yolov5sfasion100.pt").cpu()
+# personModel = torch.hub.load('ultralytics/yolov5', 'custom', 'models\yolov5s_openvino_model', device='cpu')
+personModel = YOLO(r"models\yolov8n.pt").cuda()
+fasionModel = YOLO(r"models\yolov8fashion200.pt").cuda()
 
 def draw_circle(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
@@ -29,14 +29,14 @@ def main():
             if not success:
                 print("Ignoring empty camera frame.")
                 break
-            person_imgs = OnnxDetect(image, personModel)
-            # person_imgs = YoloDetect(image, personModel)
-            # for person_img in person_imgs:
-            #     YoloDetect(person_img, fasionModel)
-            # face_imgs, bounding_boxs = face_detect(image, person_imgs)
-            # if face_imgs and bounding_boxs:
-            #     focus_x, focus_y = focus.get_focus()
-            #     FaceMesh(image, face_imgs, person_imgs, bounding_boxs, focus_x, focus_y)
+            # person_imgs = OnnxDetect(image, personModel)
+            person_imgs = YoloDetect(image, personModel, classes=[0])
+            for person_img in person_imgs:
+                YoloDetect(person_img, fasionModel)
+            face_imgs, bounding_boxs = face_detect(image, person_imgs)
+            if face_imgs and bounding_boxs:
+                focus_x, focus_y = focus.get_focus()
+                FaceMesh(image, face_imgs, person_imgs, bounding_boxs, focus_x, focus_y)
             # find fps
             end = time.time()
             fps = int(1 / (end - start))
