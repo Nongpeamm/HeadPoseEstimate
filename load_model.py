@@ -1,21 +1,21 @@
 import cv2, torch, numpy as np
 
-def YoloDetect(image: cv2.Mat, model, classes=None):
+def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25):
     # detect persons
-    objs = model.track(image, persist=True, verbose=False, classes=classes)
+    objs = model(image, classes=classes, conf=conf)
     obj_img = []
     # loop over persons
     for obj in objs:
         # bounding boxes
         boxes = obj.boxes
         # for each bounding boxq
-        for box in boxes:
+        for box, label in zip(boxes, obj.names.values()):
             x1, y1, x2, y2 = box.xyxy[0]
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             # draw bounding box
             cv2.rectangle(image, (x1, y1), (x2, y2), (255, 255, 255), 2)
             # draw label
-            cv2.putText(image, f"{obj.names[0]}", (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(image, f"{label}", (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             # crop obj image
             obj_img.append(image[y1:y2, x1:x2])
     return obj_img
