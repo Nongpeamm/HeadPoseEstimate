@@ -1,8 +1,8 @@
 import cv2, torch, numpy as np
 
-def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25):
+def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25, verbose=False):
     # detect persons
-    objs = model(image, classes=classes, conf=conf)
+    objs = model(image, classes=classes, conf=conf, verbose=verbose)
     obj_img = []
     # loop over persons
     for obj in objs:
