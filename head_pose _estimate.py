@@ -10,6 +10,7 @@ mp_drawing = mp.solutions.drawing_utils
 
 draw_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1, color=(0, 255, 0))
 
+video_writer = cv2.VideoWriter('test_beam.mp4', cv2.VideoWriter_fourcc(*'MP4V'), 60, (640, 480)) 
 cap = cv2.VideoCapture(0)
 
 while cap.isOpened():
@@ -123,6 +124,7 @@ while cap.isOpened():
         
     else:
         cv2.putText(image, "No any face detected", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    video_writer.write(cv2.resize(image, (640, 480), interpolation=cv2.INTER_AREA))
     cv2.imshow('MediaPipe FaceMesh', image)
         
     key = cv2.waitKey(1) & 0xFF
