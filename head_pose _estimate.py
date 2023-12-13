@@ -10,7 +10,7 @@ mp_drawing = mp.solutions.drawing_utils
 
 draw_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1, color=(0, 255, 0))
 
-video_writer = cv2.VideoWriter('test_beam.mp4', cv2.VideoWriter_fourcc(*'MP4V'), 60, (640, 480)) 
+video_writer = cv2.VideoWriter('test_beam.mp4', cv2.VideoWriter_fourcc(*'MP4V'), 30, (640, 480)) 
 cap = cv2.VideoCapture(0)
 
 while cap.isOpened():
