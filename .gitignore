@@ -1,6 +1,5 @@
 env/
 pyvenv.cfg
-*.csv
-__pycache__/
-*.mp4
 dataset/
+test*.*
+__pycache__
