@@ -8,7 +8,7 @@ cap = cv2.VideoCapture('test.mp4')
 focus = FocusPoint()
 # personModel = torch.hub.load('ultralytics/yolov5', 'custom', 'models\yolov5s_openvino_model', device='cpu')
 personModel = YOLO(r"models\yolov8n.pt").cuda()
-# fasionModel = YOLO(r"models\yolov8sfashion40batch32.pt").cuda()
+fasionModel = YOLO(r"models\yolov8mfashion200.pt").cuda()
 video_writer = cv2.VideoWriter("test_beam.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640,480))
 def draw_circle(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONUP:
@@ -32,12 +32,12 @@ def main():
                 break
             # person_imgs = OnnxDetect(image, personModel)
             person_imgs = YoloDetect(image, personModel, classes=[0], conf=0.4)
-            # for person_img in person_imgs:
-            #     YoloDetect(person_img, fasionModel, verbose=True)
-            face_imgs, bounding_boxs = face_detect(image, person_imgs)
-            if face_imgs and bounding_boxs:
-                focus_x, focus_y = focus.get_focus()
-                FaceMesh(image, face_imgs, person_imgs, bounding_boxs, focus_x, focus_y)
+            for person_img in person_imgs:
+                YoloDetect(person_img, fasionModel, verbose=True)
+            # face_imgs, bounding_boxs = face_detect(image, person_imgs)
+            # if face_imgs and bounding_boxs:
+            #     focus_x, focus_y = focus.get_focus()
+            #     FaceMesh(image, face_imgs, person_imgs, bounding_boxs, focus_x, focus_y)
             # find fps
             end = time.time()
             fps = int(1 / (end - start))
