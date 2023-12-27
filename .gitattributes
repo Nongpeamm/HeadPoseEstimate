@@ -1,2 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+facedetect_module/*/model/* filter=lfs diff=lfs merge=lfs -text
+facedetect_module/*/dataBase/* filter=lfs diff=lfs merge=lfs -text

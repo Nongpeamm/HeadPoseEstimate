@@ -1,14 +1,14 @@
 import sys
 import numpy as np
 import os
-from insightfaceDetector.scrfd import SCRFD
-from insightfaceRecognition.utils.face_align import norm_crop
-from insightfaceRecognition.utils.utils import load_pickle, compute_sim,save_pickle
-from insightfaceRecognition.arcface_onnx import ArcFaceONNX
+from facedetect_module.insightfaceDetector.scrfd import SCRFD
+from facedetect_module.insightfaceRecognition.utils.face_align import norm_crop
+from facedetect_module.insightfaceRecognition.utils.utils import load_pickle, compute_sim,save_pickle
+from facedetect_module.insightfaceRecognition.arcface_onnx import ArcFaceONNX
 
 
 class Face_class:
-    def __init__(self, model_rec_path=r"D:\Github\HeadPoseEstimate\insightfaceRecognition\model\w600k_r50.onnx", det_thresh=0.5, ctx_id=0, det_size=(640, 640), ref_face=3):
+    def __init__(self, model_rec_path=r"facedetect_module\insightfaceRecognition\model\w600k_r50.onnx", det_thresh=0.5, ctx_id=0, det_size=(640, 640), ref_face=3):
         # Load model
         self.model_det = SCRFD()
         self.model_det.prepare(

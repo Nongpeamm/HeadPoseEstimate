@@ -1,6 +1,4 @@
 import cv2
-import torch
-import numpy as np
 from colors import Color
 
 
@@ -13,8 +11,8 @@ def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25, verbose=False, co
     boxes = objs[0].boxes
     if boxes.id is None:
         return obj_img
-    tracking_ids = boxes.id.int().cuda().tolist()
-    classes = boxes.cls.int().cuda().tolist()
+    tracking_ids = boxes.id.int().tolist()
+    classes = boxes.cls.int().tolist()
     # for each bounding box
     for box, labels, tracking_id in zip(boxes, classes, tracking_ids):
         # get bounding box coordinates
