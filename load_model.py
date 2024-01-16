@@ -1,5 +1,6 @@
 import cv2
 from colors import Color
+import numpy as np
 
 
 def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25, verbose=False, color: tuple = Color.white, want_track_id=False):
@@ -33,6 +34,49 @@ def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25, verbose=False, co
 
     return obj_img
 
+def YoloDetectWithTracker(image: cv2.Mat, model, sort_tracker, conf=0.25):
+    # Detect persons using YOLO model
+    objs = model.track(image, classes=0, conf=conf,
+                       verbose=False, persist=True, tracker='bytetrack.yaml')
+
+    obj_img = []
+
+    # Check if there are any detections
+    if objs[0].boxes.id is None:
+        return obj_img
+
+    # Extract information from YOLO detections
+    boxes = objs[0].boxes
+    xyxys = boxes.xyxy.cpu().numpy()
+    confs = boxes.conf.cpu().numpy()
+    classes = boxes.cls.cpu().numpy().astype(int)
+    ids = boxes.id.cpu().numpy().astype(int)
+    detections = []
+
+    for xyxy, conf, cls, track_id in zip(xyxys, confs, classes, ids):
+        x1, y1, x2, y2 = xyxy
+
+        # Format detections as expected by the SORT tracker
+        detections.append([x1, y1, x2, y2, conf, cls])
+
+    # Update the SORT tracker
+    tracks = sort_tracker.update(np.array(detections), image)
+    for track in tracks:
+        # Get the bounding box coordinates
+        x1, y1, x2, y2 = track[0:4].astype(int)
+        track_id = int(track[4])
+        # Draw the bounding box over the image
+        cv2.rectangle(image, (x1, y1), (x2, y2), Color.white, 2)
+        # Draw the label
+        cv2.putText(image, objs[0].names[track[6]], (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, Color.white, 2)
+        # Draw the tracking id
+        cv2.putText(image, f'id: {track_id}', (x1, y1 - 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, Color.white, 2)
+        # Get the person image
+        obj_img.append(image[y1:y2, x1:x2])
+
+    return obj_img
 
 def OnnxDetect(image: cv2.Mat, model):
     # image = cv2.resize(image, (640, 640), interpolation=cv2.INTER_AREA)

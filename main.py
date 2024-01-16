@@ -2,12 +2,12 @@ import time
 import torch
 import cv2
 import threading
-import copy
 from ultralytics import YOLO
-from detect import DetectFasion
+from detect import DetectFasion, DetectFace
 from load_model import YoloDetect
-from face_class import Face_class
 from colors import Color
+from boxmot.tracker_zoo import create_tracker, get_tracker_config
+from pathlib import Path
 
 
 def write_video(video_writer, image):
@@ -16,8 +16,9 @@ def write_video(video_writer, image):
 
 
 def main(model: DetectFasion):
-    cap = cv2.VideoCapture('test.mp4')
+    cap = cv2.VideoCapture('in.avi')
     video_writer = cv2.VideoWriter("test_beam.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
+    fashion_datas = dict()
     frame_skip = 5  # ตั้งค่า frame skip
     while cap.isOpened():
         success, image = cap.read()
@@ -31,12 +32,12 @@ def main(model: DetectFasion):
 
         person_imgs = model.person_detect(image)
         model.fashion_detect(person_imgs)
+        # print(person_imgs)
 
         # face_imgs, bounding_boxs = face_detect(image, person_imgs)
         # if face_imgs and bounding_boxs:
         #     focus_x, focus_y = focus.get_focus()
         #     FaceMesh(image, face_imgs, person_imgs, bounding_boxs, focus_x, focus_y)
-
         stop_time = time.time()
         fps = 1 / (stop_time - start_time)
         cv2.putText(image, f"{fps:.1f} FPS", (50, 100),
@@ -52,7 +53,7 @@ def main(model: DetectFasion):
 
 
 def main2(person_detect_model: YOLO):
-    face_detect_model = Face_class()
+    face_detect_model = DetectFace()
     cap = cv2.VideoCapture(0)
     video_writer = cv2.VideoWriter(
         "test_beam2.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
@@ -64,7 +65,7 @@ def main2(person_detect_model: YOLO):
 
         start_time = time.time()
 
-        person_imgs = YoloDetect(image, person_detect_model, classes=[0], conf=0.4, want_track_id=True)  # return person images
+        person_imgs, _ = YoloDetect(image, person_detect_model, classes=[0], conf=0.4, want_track_id=True)  # return person images
 
         for person_img in person_imgs:
             bbox_list, face_landmark = face_detect_model.detect(person_img)
@@ -97,14 +98,15 @@ def main2(person_detect_model: YOLO):
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     personModel = YOLO(r"models\yolov8n.pt").to(device)
-    fasionModel = YOLO(r"models\yolov8mfashion200.pt").to(device)
-    model = DetectFasion(personModel, fasionModel)
+    fasionModel = YOLO(r"models\yolov8mOWNcctv80batch64AdamLR0.001.pt").to(device)
+    sort_tracker = create_tracker('strongsort', get_tracker_config('strongsort'), Path('models\osnet_x0_25_msmt17.pt'), device, False, False)
+    model = DetectFasion(personModel, fasionModel, sort_tracker)
     # Create the tracker threads
     tracker_thread1 = threading.Thread(target=main, args=(model,))
-    tracker_thread2 = threading.Thread(target=main2, args=(YOLO(r"models\yolov8n.pt").to(device),))
+    tracker_thread2 = threading.Thread(target=main2, args=(personModel,))
     # Start the tracker threads
     tracker_thread1.start()
-    tracker_thread2.start()
+    # tracker_thread2.start()
 
     # main(model)
     # main2(personModel)
