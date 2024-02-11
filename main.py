@@ -9,14 +9,13 @@ from colors import Color
 from boxmot.tracker_zoo import create_tracker, get_tracker_config
 from pathlib import Path
 
-
 def write_video(video_writer, image):
     video_writer.write(cv2.resize(image, (640, 480),
                        interpolation=cv2.INTER_AREA))
 
 
 def main(model: DetectFasion):
-    cap = cv2.VideoCapture('in.avi')
+    cap = cv2.VideoCapture('eye.mp4')
     video_writer = cv2.VideoWriter("test_beam.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
     fashion_datas = dict()
     frame_skip = 5  # ตั้งค่า frame skip
@@ -31,7 +30,8 @@ def main(model: DetectFasion):
         #     cap.grab()
 
         person_imgs = model.person_detect(image)
-        model.fashion_detect(person_imgs)
+        for person_img in person_imgs:
+            model.fashion_detect(person_img)
         # print(person_imgs)
 
         # face_imgs, bounding_boxs = face_detect(image, person_imgs)
@@ -98,7 +98,7 @@ def main2(person_detect_model: YOLO):
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     personModel = YOLO(r"models\yolov8n.pt").to(device)
-    fasionModel = YOLO(r"models\yolov8mOWNcctv80batch64AdamLR0.001.pt").to(device)
+    fasionModel = YOLO(r"models\best.pt").to(device)
     sort_tracker = create_tracker('strongsort', get_tracker_config('strongsort'), Path('models\osnet_x0_25_msmt17.pt'), device, False, False)
     model = DetectFasion(personModel, fasionModel, sort_tracker)
     # Create the tracker threads

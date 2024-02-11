@@ -14,12 +14,7 @@ class DetectFasion:
         return YoloDetectWithTracker(image, self.person_model, self.tracker, conf=0.25) # return person images
 
     def fashion_detect(self, image): # image is person image
-        #if image is array of person images
-        if isinstance(image, list):
-            for person_img in image:
-                return YoloDetect(person_img, self.fasion_model, conf=0.7)
-        else:
-            return YoloDetect(image, self.fasion_model, conf=0.7)
+        return YoloDetect(image, self.fasion_model, conf=0.6)
 
 class DetectFace:
     def __init__(self, model_rec_path=r"facedetect_module\insightfaceRecognition\model\w600k_r50.onnx", det_thresh=0.5, ctx_id=0, det_size=(640, 640), ref_face=3):

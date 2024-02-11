@@ -2,3 +2,5 @@
 * text=auto
 facedetect_module/*/model/* filter=lfs diff=lfs merge=lfs -text
 facedetect_module/*/dataBase/* filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.mp4 filter=lfs diff=lfs merge=lfs -text
