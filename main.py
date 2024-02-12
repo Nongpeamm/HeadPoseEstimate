@@ -126,7 +126,4 @@ if __name__ == "__main__":
     # Start the tracker threads
     tracker_thread1.start()  # fashion detect
     # tracker_thread2.start() # face detect
-
-    # main(model)
-    # main2(personModel)
     cv2.destroyAllWindows()
