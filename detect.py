@@ -31,6 +31,8 @@ class DetectFace:
         self.thres_m = 0.225
 
     def detect(self, img, max_num=10, metric='default'):
+        if img is None or img.shape[0] == 0 or img.shape[1] == 0:
+            return None, None
         # bboxes, landmarks
         return self.model_det.detect(img=img, max_num=max_num, metric=metric)
 

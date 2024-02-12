@@ -5,16 +5,17 @@ import numpy as np
 
 def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25, verbose=False, color: tuple = Color.white):
     if image is None or image.shape[0] == 0 or image.shape[1] == 0:
-        return []
+        return [], []
     # detect persons
     objs = model.track(image, classes=classes, conf=conf,
                        verbose=verbose, persist=True, tracker='bytetrack.yaml')
     obj_img = []
+    labels_array = []
     # bounding boxes
     boxes = objs[0].boxes
     if boxes.id is None:
-        return obj_img
-    classes = boxes.cls.int().tolist()
+        return obj_img, labels_array
+    classes = boxes.cls.cpu().int().tolist()
     # for each bounding box
     for box, labels in zip(boxes, classes):
         # get bounding box coordinates
@@ -27,10 +28,13 @@ def YoloDetect(image: cv2.Mat, model, classes=None, conf=0.25, verbose=False, co
                     cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
         # get person image
         obj_img.append(image[y1:y2, x1:x2])
+        labels_array.append(objs[0].names[labels])
 
-    return obj_img
+    return obj_img, labels_array
 
 def YoloDetectWithTracker(image: cv2.Mat, model, sort_tracker, conf=0.25):
+    if image is None or image.shape[0] == 0 or image.shape[1] == 0:
+        return [], []
     # Detect persons using YOLO model
     objs = model.track(image, classes=0, conf=conf,
                        verbose=False, persist=True, tracker='bytetrack.yaml')
@@ -39,7 +43,7 @@ def YoloDetectWithTracker(image: cv2.Mat, model, sort_tracker, conf=0.25):
 
     # Check if there are any detections
     if objs[0].boxes.id is None:
-        return obj_img
+        return obj_img, []
 
     # Extract information from YOLO detections
     boxes = objs[0].boxes
@@ -57,10 +61,12 @@ def YoloDetectWithTracker(image: cv2.Mat, model, sort_tracker, conf=0.25):
 
     # Update the SORT tracker
     tracks = sort_tracker.update(np.array(detections), image)
+    track_ids = []
     for track in tracks:
         # Get the bounding box coordinates
         x1, y1, x2, y2 = track[0:4].astype(int)
         track_id = int(track[4])
+        track_ids.append(track_id)
         # Draw the bounding box over the image
         cv2.rectangle(image, (x1, y1), (x2, y2), Color.white, 2)
         # Draw the label
@@ -72,7 +78,7 @@ def YoloDetectWithTracker(image: cv2.Mat, model, sort_tracker, conf=0.25):
         # Get the person image
         obj_img.append(image[y1:y2, x1:x2])
 
-    return obj_img
+    return obj_img, track_ids
 
 def OnnxDetect(image: cv2.Mat, model):
     # image = cv2.resize(image, (640, 640), interpolation=cv2.INTER_AREA)
