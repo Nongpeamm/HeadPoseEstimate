@@ -21,7 +21,7 @@ def write_video(video_writer, image):
 
 
 def main(model: DetectFasion):
-    cap = cv2.VideoCapture('piam.mp4')
+    cap = cv2.VideoCapture(0)
     video_writer = cv2.VideoWriter(
         "test_beam.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
     id_dict = {}
@@ -33,29 +33,22 @@ def main(model: DetectFasion):
         if not success:
             print("Ignoring empty camera frame.")
             break
-
+        
         start_time = time.time()
         for _ in range(frame_skip - 1):
             cap.grab()
 
+        image = cv2.resize(image,(0,0),fx = 0.5,fy = 0.5)
         person_imgs, track_ids = model.person_detect(image)
         for track_id in track_ids:
             if track_id not in id_dict:
-                # if len(id_dict) > DICT_MAX_SIZE:
-                #     for data in id_dict.keys():
-                #         all_top = dict(list(id_dict[data].items())[:5])
-                #         max_top = max(all_top, key=all_top.get)
-                #         max_pant = None
-                #         if max_top != "dress":
-                #             all_pant = dict(list(id_dict[data].items())[5:])
-                #             max_pant = max(all_pant, key=all_pant.get)
-                #         # print(f"ID: {data} Top: {max_top} : {id_dict[data][max_top]} Pant: {max_pant} : {id_dict[data][max_pant]}")
-                #     requests.post(os.getenv("API_URL") + "/fashion", json={
-                #         "top": max_top,
-                #         "pant": max_pant,
-                #         "location": location,
-                #     }, headers={ "Authorization": token })
-                #     id_dict.clear()
+                length = len(id_dict)
+                if length > 0 and track_id < list(id_dict)[-1]:
+                    continue
+
+                if length > DICT_MAX_SIZE:
+                    requests.post(os.getenv("API_URL") + "/customer", json=id_dict, headers={ "Authorization": token })
+                    id_dict.clear()
 
                 id_dict[track_id] = {
                     "dress": 0,
@@ -79,9 +72,9 @@ def main(model: DetectFasion):
                     cv2.FONT_HERSHEY_SIMPLEX, 1, Color.green, 2)
 
         write_video(video_writer, image)
-        image = cv2.resize(image, (640, 480), interpolation=cv2.INTER_AREA)
         cv2.imshow("Fashion detect", image)
         if cv2.waitKey(1) & 0xFF == ord("q"):
+            requests.post(os.getenv("API_URL") + "/customer", json=id_dict, headers={ "Authorization": token })
             break
     cap.release()
     video_writer.release()
@@ -189,12 +182,13 @@ def LoginGUI():
 
 
 if __name__ == "__main__":
-    # load_dotenv()
-    # global token, location
-    # token = ''
-    # location = ''
-    # if os.getenv("ACCESS_TOKEN") is None:
-    #     LoginGUI()
+    load_dotenv()
+    global token, location
+    token = ''
+    location = 'KMUTT'
+    print(os.getenv("ACCESS_TOKEN"))
+    if os.getenv("ACCESS_TOKEN") is None:
+        LoginGUI()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     personModel = YOLO(r"models\yolov8n.pt").to(device)
     fasionModel = YOLO(r"models\fashion.pt").to(device)
