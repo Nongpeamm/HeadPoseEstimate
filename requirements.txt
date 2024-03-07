@@ -45,6 +45,7 @@ networkx==3.2.1
 nodeenv==1.8.0
 numpy==1.24.4
 oauthlib==3.2.2
+omegaconf==2.3.0
 onnx==1.15.0
 onnxruntime==1.16.3
 opencv-python==4.9.0.80
