@@ -1,203 +1,140 @@
-import time
-import torch
-import cv2
-import threading
-import tkinter as tk
 import os
+import cv2
 import requests
-import re
+import torch
+from threading import Thread
+from boxmot import create_tracker, get_tracker_config
 from dotenv import load_dotenv
 from ultralytics import YOLO
 from detect import DetectFasion, DetectFace
-from load_model import YoloDetectWithTracker
-from colors import Color
-from boxmot.tracker_zoo import create_tracker, get_tracker_config
 from pathlib import Path
+from colors import Color
+from load_model import YoloDetectWithTracker
+from insightface.app import FaceAnalysis
 
 
-def write_video(video_writer, image):
-    video_writer.write(cv2.resize(image, (640, 480),
-                       interpolation=cv2.INTER_AREA))
-
-
-def main(model: DetectFasion):
-    cap = cv2.VideoCapture(0)
-    video_writer = cv2.VideoWriter(
+video_writer = cv2.VideoWriter(
         "test_beam.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
-    id_dict = {}
-    DICT_MAX_SIZE = 3
 
-    frame_skip = 5  # ตั้งค่า frame skip
-    while cap.isOpened():
-        success, image = cap.read()
-        if not success:
-            print("Ignoring empty camera frame.")
-            break
-        
-        start_time = time.time()
-        for _ in range(frame_skip - 1):
-            cap.grab()
+def detect_person_cam1(model: DetectFasion, image:cv2.Mat, id_dict: dict, DICT_MAX_SIZE: int):
+    person_imgs, track_ids = model.person_detect(image)
 
-        image = cv2.resize(image,(0,0),fx = 0.5,fy = 0.5)
-        person_imgs, track_ids = model.person_detect(image)
-        for track_id in track_ids:
-            if track_id not in id_dict:
-                length = len(id_dict)
-                if length > 0 and track_id < list(id_dict)[-1]:
-                    continue
-
-                if length > DICT_MAX_SIZE:
-                    requests.post(os.getenv("API_URL") + "/customer", json=id_dict, headers={ "Authorization": token })
-                    id_dict.clear()
-
-                id_dict[track_id] = {
-                    "dress": 0,
-                    "t-shirt": 0,
-                    "jacket": 0,
-                    "top": 0,
-                    "long-sleeve": 0,
-                    "short": 0,
-                    "skirt": 0,
-                    "trouser": 0
-                }
-
-        for person_img, track_id in zip(person_imgs, track_ids):
-            _, fashion_labels = model.fashion_detect(person_img)
-            for fashion_label in fashion_labels:
-                id_dict[track_id][fashion_label] += 1
-
-        stop_time = time.time()
-        fps = 1 / (stop_time - start_time)
-        cv2.putText(image, f"{fps:.1f} FPS", (50, 100),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, Color.green, 2)
-
-        write_video(video_writer, image)
-        cv2.imshow("Fashion detect", image)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            requests.post(os.getenv("API_URL") + "/customer", json=id_dict, headers={ "Authorization": token })
-            break
-    cap.release()
-    video_writer.release()
-
-
-def main2(person_detect_model: YOLO, sort_tracker):
-    face_detect_model = DetectFace()
-    cap = cv2.VideoCapture(0)
-    video_writer = cv2.VideoWriter(
-        "test_beam2.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
-    while cap.isOpened():
-        success, image = cap.read()
-        if not success:
-            print("Ignoring empty camera frame.")
-            break
-
-        start_time = time.time()
-
-        person_imgs, _ = YoloDetectWithTracker(
-            image, person_detect_model, sort_tracker, conf=0.4)  # return person images
-
-        for person_img in person_imgs:
-            bbox_list, face_landmark = face_detect_model.detect(person_img)
-            if bbox_list is None or bbox_list.shape[0] == 0 or face_landmark is None:
+    for person_img, track_id in zip(person_imgs, track_ids):
+        if track_id not in id_dict:
+            length = len(id_dict)
+            if length > 0 and track_id < list(id_dict)[-1]:
                 continue
+            
+            if length > DICT_MAX_SIZE:
+                print("Sending data to server")
+                Thread(target=requests.post, args=(os.getenv("API_URL") + "/customer",), kwargs={"json": id_dict, "headers": { "accessToken": token }}).start()
+                id_dict.clear()
 
-            bbox = bbox_list[0][0:4]
-            x1, y1, x2, y2 = bbox
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            cv2.rectangle(person_img, (x1, y1), (x2, y2), Color.purple, 2)
+            id_dict[track_id] = {
+                "dress": 0,
+                "t-shirt": 0,
+                "jacket": 0,
+                "top": 0,
+                "long-sleeve": 0,
+                "short": 0,
+                "skirt": 0,
+                "trouser": 0
+            }
 
-            x, y = face_landmark[0][2]  # nose
-            # cv2.circle(person_img, (int(x), int(y)), 1, Color.red, 2) #error CUDA
-            cv2.rectangle(person_img, (int(x) - 10, int(y) - 10), (int(x) + 10, int(y) + 10), Color.red, 2)
+        _, fashion_labels = model.fashion_detect(person_img)
+        for fashion_label in fashion_labels:
+            id_dict[track_id][fashion_label] += 1
 
-        stop_time = time.time()
-        fps = 1 / (stop_time - start_time)
-        cv2.putText(image, f"{fps:.1f} FPS", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, Color.green, 2)
+        # print(id_dict)
+        video_writer.write(cv2.resize(image, (640, 480), interpolation=cv2.INTER_AREA))
 
-        write_video(video_writer, image)
-        image = cv2.resize(image, (640, 480), interpolation=cv2.INTER_AREA)
-        cv2.imshow("Face Detect", image)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model: FaceAnalysis):
+    # person_imgs, _ = YoloDetectWithTracker(
+    #         image, person_detect_model, sort_tracker, conf=0.4)  # return person images
+        # bbox_list, face_landmark = face_detect_model.detect(image)
+        # if bbox_list is None or bbox_list.shape[0] == 0 or face_landmark is None:
+        #     return
+
+        # bbox = bbox_list[0][0:4]
+        # x1, y1, x2, y2 = bbox
+        # x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        # cv2.rectangle(image, (x1, y1), (x2, y2), Color.purple, 2)
+
+        # x, y = face_landmark[0][2]  # nose
+        # # cv2.circle(person_img, (int(x), int(y)), 1, Color.red, 2) #error CUDA
+        # cv2.rectangle(image, (int(x) - 10, int(y) - 10), (int(x) + 10, int(y) + 10), Color.red, 2)
+    
+    resized_img = cv2.resize(image, (640, 640), interpolation=cv2.INTER_AREA)
+    face_imgs = face_detect_model.get(resized_img)
+    for face_img in face_imgs:
+        landmark = face_img.landmark_3d_68[30] # nose
+        x, y, z = landmark
+        x = x * image.shape[1] / resized_img.shape[1]
+        y = y * image.shape[0] / resized_img.shape[0]
+        z = z * image.shape[1] / resized_img.shape[1]
+        cv2.circle(image, (int(x), int(y)), 2, Color.red, 6)
+        
+
+def main(model: DetectFasion, face_detect_model: FaceAnalysis, person_detect_model: YOLO):
+    cap1 = cv2.VideoCapture('test.mp4')
+    cap2 = cv2.VideoCapture(0)
+    id_dict = {}
+    frame_skip = 5  # ตั้งค่า frame skip
+    while cap1.isOpened() and cap2.isOpened():
+        ret1, frame1 = cap1.read()
+        ret2, frame2 = cap2.read()
+
+        if not ret1 or not ret2:
             break
-    cap.release()
-    video_writer.release()
 
+        for _ in range(frame_skip - 1):
+            cap1.grab()
+            cap2.grab()
 
-def LoginGUI():
-    def login():
-        email = email_entry.get()
-        password = password_entry.get()
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            error_label.config(text="Email is not valid", bg="white")
-            return
+        # detect_person_cam1(model, frame1, id_dict, 0)
+        detect_face_cam2(person_detect_model, frame2, face_detect_model)
 
-        url = os.getenv("API_URL") + "/auth/login"
-        data = {
-            "email": email,
-            "password": password
-        }
-        try:
-            response = requests.post(url, json=data)
-            if response.status_code == 200:
-                error_label.config(text="", bg="light blue")
-                token = response.json()["accesstoken"]
-                with open(".env", "a") as f:
-                    f.write(f"ACCESS_TOKEN={token}\n")
-                    root.destroy()
-                    f.close()
-            elif response.status_code == 400:
-                error_label.config(text="Invalid email or password", bg="white")
+        if frame1.shape[0] != frame2.shape[0]:
+            height, width, _ = frame1.shape
+            frame1_ratio = width / height
+
+            height, width, _ = frame2.shape
+            frame2_ratio = width / height
+
+            if frame1_ratio < frame2_ratio:
+                frame2 = cv2.resize(frame2, (frame1.shape[1], frame1.shape[0]), interpolation=cv2.INTER_AREA)
             else:
-                error_label.config(text="Something went wrong", bg="white")
-        except requests.exceptions.RequestException as e:
-            error_label.config(text="Connection error", bg="white")
+                frame1 = cv2.resize(frame1, (frame2.shape[1], frame2.shape[0]), interpolation=cv2.INTER_AREA)
 
-    root = tk.Tk()
-    root.title("Login")
-    root.geometry("300x200")
-    root.resizable(False, False)
-    root.configure(bg="light blue")
+        frame1 = cv2.resize(frame1, (0, 0), fx=0.5, fy=0.5)
+        frame2 = cv2.resize(frame2, (0, 0), fx=0.5, fy=0.5)
+        merged_frame = cv2.vconcat([frame1, frame2])
+        cv2.imshow('Test', merged_frame)
 
-    email_label = tk.Label(root, text="Email", bg="light blue")
-    email_label.pack(pady=[10, 0])
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-    email_entry = tk.Entry(root, width=30)
-    email_entry.pack()
-    email_entry.focus()
-
-    password_label = tk.Label(root, text="Password", bg="light blue")
-    password_label.pack(pady=[10, 0])
-
-    password_entry = tk.Entry(root, width=30, show="*")
-    password_entry.pack()
-
-    login_button = tk.Button(root, text="Login", width=10, command=login)
-    login_button.pack(pady=10)
-
-    error_label = tk.Label(root, text="", fg="red", width=30, bg="light blue")
-    error_label.pack(pady=5)
-    root.mainloop()
-
-    return
-
+    cap1.release()
+    cap2.release()
+    video_writer.release()
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
+    import os
     load_dotenv()
     global token, location
     token = ''
     location = 'KMUTT'
-    print(os.getenv("ACCESS_TOKEN"))
-    if os.getenv("ACCESS_TOKEN") is None:
-        LoginGUI()
+    # load_dotenv()
+    # if os.getenv("ACCESS_TOKEN") is None:
+    #     LoginGUI()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    personModel = YOLO(r"models\yolov8n.pt").to(device)
-    fasionModel = YOLO(r"models\fashion.pt").to(device)
+    personModel = YOLO(r"models\yolov8x.pt").to(device)
+    fasionModel = YOLO(r"models\fashion_test.pt").to(device)
     sort_tracker = create_tracker('strongsort', get_tracker_config('strongsort'), Path('models\osnet_x0_25_msmt17.pt'), device, False, False)
     model = DetectFasion(personModel, fasionModel, sort_tracker)
-    # Create the tracker threads
-    tracker_thread1 = threading.Thread(target=main, args=(model,))
-    tracker_thread2 = threading.Thread(target=main2, args=(personModel, sort_tracker,))
-    # Start the tracker threads
-    tracker_thread1.start()  # fashion detect
-    # tracker_thread2.start() # face detect
-    cv2.destroyAllWindows()
+    # face_detect_model = DetectFace()
+    face_detect_model = FaceAnalysis(root='./', providers=['CPUExecutionProvider'])
+    face_detect_model.prepare(ctx_id=0, det_size=(640, 640))
+    # os.system('cls')
+    main(model, face_detect_model, YOLO(r"models\yolov8n.pt").to(device))
