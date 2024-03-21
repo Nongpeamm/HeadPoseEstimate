@@ -12,6 +12,7 @@ from colors import Color
 from load_model import YoloDetectWithTracker
 from insightface.app import FaceAnalysis
 import numpy as np
+import math
 
 model_points = np.array([
                             (0.0, 0.0, 0.0),             # Nose tip
@@ -97,24 +98,60 @@ def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model
     for face_img in face_imgs:        
         idx = [30, 8, 45, 36, 48, 54]
         face_2d = []
-        face_3d = []
+        # face_3d = []
         for i in idx:
             x, y, z = face_img.landmark_3d_68[i]
             x = x * image.shape[1] / resized_img.shape[1]
             y = y * image.shape[0] / resized_img.shape[0]
-            z = z * image.shape[1] / resized_img.shape[1]
+            # z = z * image.shape[1] / resized_img.shape[1]
             cv2.circle(image, (int(x), int(y)), 2, Color.red, 6)
             
             face_2d.append((int(x), int(y)))
-            face_3d.append((int(x), int(y), int(z)))
+            # face_3d.append((int(x), int(y), int(z)))
         face_2d = np.array(face_2d, dtype='double')
         (_, rotation_vector, translation_vector) = cv2.solvePnP(model_points, face_2d, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
-        (nose_end_point2D, _) = cv2.projectPoints(np.array([(0.0, 0.0, 1200.0)]), rotation_vector, translation_vector, camera_matrix, dist_coeffs)
+        (nose_end_point2D, _) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector, translation_vector, camera_matrix, dist_coeffs)
         
         p1 = (int(face_2d[0][0]), int(face_2d[0][1]))
         p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
         cv2.line(image, p1, p2, (255,0,0), 2)
         
+        # check pose of face see the screen or not
+        rvec_matrix = cv2.Rodrigues(rotation_vector)[0]
+        proj_matrix = np.hstack((rvec_matrix, translation_vector))
+        eulerAngles = cv2.decomposeProjectionMatrix(proj_matrix)[6]
+        pitch, yaw, roll = [math.radians(_) for _ in eulerAngles]
+        pitch = math.degrees(math.asin(math.sin(pitch)))
+        yaw = math.degrees(math.asin(math.sin(yaw)))
+        roll = math.degrees(math.asin(math.sin(roll)))
+        
+        # if pitch < -15:
+        #     cv2.putText(image, " PITCH UP", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        # elif pitch > 15:
+        #     cv2.putText(image, "PITCH DOWN", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        # else:
+        #     cv2.putText(image, "PITCH CENTER", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        
+        if yaw < -15:
+            cv2.putText(image, "yaw RIGHT", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        elif yaw > 15:
+            cv2.putText(image, "yaw LEFT", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        else:
+            cv2.putText(image, "yaw CENTER", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            
+        if roll < -15:
+            cv2.putText(image, "roll RIGHT", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        elif roll > 15:
+            cv2.putText(image, "roll LEFT", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        else:
+            cv2.putText(image, "roll CENTER", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            
+        if yaw < -15 or yaw > 15 or roll < -15 or roll > 15:
+            cv2.putText(image, "Please look at the screen", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        else:
+            cv2.putText(image, "Good pose", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+
+
 def main(model: DetectFasion, face_detect_model: FaceAnalysis, person_detect_model: YOLO):    
     cap1 = cv2.VideoCapture('eye.mp4')
     cap2 = cv2.VideoCapture(0)
