@@ -99,10 +99,13 @@ def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model
         idx = [30, 8, 45, 36, 48, 54]
         face_2d = []
         # face_3d = []
-        for i in idx:
-            x, y, z = face_img.landmark_3d_68[i]
+        for id in idx:
+            x, y, z = face_img.landmark_3d_68[id]
             x = x * image.shape[1] / resized_img.shape[1]
             y = y * image.shape[0] / resized_img.shape[0]
+            if id == 45:
+                x_text = int(x - 10)
+                y_text = int(y - 10)
             # z = z * image.shape[1] / resized_img.shape[1]
             cv2.circle(image, (int(x), int(y)), 2, Color.red, 6)
             
@@ -124,32 +127,13 @@ def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model
         pitch = math.degrees(math.asin(math.sin(pitch)))
         yaw = math.degrees(math.asin(math.sin(yaw)))
         roll = math.degrees(math.asin(math.sin(roll)))
-        
-        # if pitch < -15:
-        #     cv2.putText(image, " PITCH UP", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        # elif pitch > 15:
-        #     cv2.putText(image, "PITCH DOWN", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        # else:
-        #     cv2.putText(image, "PITCH CENTER", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        
-        if yaw < -15:
-            cv2.putText(image, "yaw RIGHT", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        elif yaw > 15:
-            cv2.putText(image, "yaw LEFT", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        else:
-            cv2.putText(image, "yaw CENTER", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
             
-        if roll < -15:
-            cv2.putText(image, "roll RIGHT", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        elif roll > 15:
-            cv2.putText(image, "roll LEFT", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        if roll < -25:
+            cv2.putText(image, "-", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        elif roll > 25:
+            cv2.putText(image, "-", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
         else:
-            cv2.putText(image, "roll CENTER", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-            
-        if yaw < -15 or yaw > 15 or roll < -15 or roll > 15:
-            cv2.putText(image, "Please look at the screen", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        else:
-            cv2.putText(image, "Good pose", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.putText(image, "look detect", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
 
 def main(model: DetectFasion, face_detect_model: FaceAnalysis, person_detect_model: YOLO):    
