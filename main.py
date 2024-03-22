@@ -6,7 +6,7 @@ from threading import Thread
 from boxmot import create_tracker, get_tracker_config
 from dotenv import load_dotenv
 from ultralytics import YOLO
-from detect import DetectFasion, DetectFace
+from detect import DetectFasion, DetectFace, Tracker
 from pathlib import Path
 from colors import Color
 from load_model import YoloDetectWithTracker
@@ -58,7 +58,7 @@ def detect_person_cam1(model: DetectFasion, image:cv2.Mat, id_dict: dict, DICT_M
         # print(id_dict)
         video_writer.write(cv2.resize(image, (640, 480), interpolation=cv2.INTER_AREA))
 
-def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model: FaceAnalysis):
+def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model: FaceAnalysis, track: Tracker):
     
     # person_imgs, _ = YoloDetectWithTracker(
     #         image, person_detect_model, sort_tracker, conf=0.4)  # return person images
@@ -87,7 +87,7 @@ def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model
     dist_coeffs = np.zeros((4,1)) # Assuming no lens distortion
     resized_img = cv2.resize(image, (640, 640), interpolation=cv2.INTER_AREA)
     face_imgs = face_detect_model.get(resized_img)
-    
+
     # face_img.landmark_3d_68[8] # chin
     # face_img.landmark_3d_68[30] # nose
     # face_img.landmark_3d_68[45] # left eye
@@ -95,45 +95,90 @@ def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model
     # face_img.landmark_3d_68[48] # left mouth
     # face_img.landmark_3d_68[54] # right mouth
     
-    for face_img in face_imgs:        
-        idx = [30, 8, 45, 36, 48, 54]
-        face_2d = []
-        # face_3d = []
-        for id in idx:
-            x, y, z = face_img.landmark_3d_68[id]
-            x = x * image.shape[1] / resized_img.shape[1]
-            y = y * image.shape[0] / resized_img.shape[0]
-            if id == 45:
-                x_text = int(x - 10)
-                y_text = int(y - 10)
-            # z = z * image.shape[1] / resized_img.shape[1]
-            cv2.circle(image, (int(x), int(y)), 2, Color.red, 6)
+    detections = []
+    customer_dict = {}
+    for face in (face_imgs):   
+        look_pose = False
+        face.bbox = [face.bbox[0] * image.shape[1] / resized_img.shape[1],
+                         face.bbox[1] * image.shape[0] / resized_img.shape[0],
+                         face.bbox[2] * image.shape[1] / resized_img.shape[1],
+                         face.bbox[3] * image.shape[0] / resized_img.shape[0]]
+        x1, y1, x2, y2 = face.bbox
+        d_x1, d_y1, d_x2, d_y2 = int(x1), int(y1), int(x2), int(y2)
+        cv2.rectangle(image, (d_x1, d_y1), (d_x2, d_y2), Color.purple, 2)        
+        pitch, yaw, roll = face.pose 
+        if roll >= -10 and roll <= 10:
+            look_pose = True
+            cv2.putText(image, f"look detect", (d_x1, d_y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
             
-            face_2d.append((int(x), int(y)))
-            # face_3d.append((int(x), int(y), int(z)))
-        face_2d = np.array(face_2d, dtype='double')
-        (_, rotation_vector, translation_vector) = cv2.solvePnP(model_points, face_2d, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
-        (nose_end_point2D, _) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector, translation_vector, camera_matrix, dist_coeffs)
+        detection = [d_x1, d_y1, d_x2, d_y2, face.det_score, 0, look_pose]  
+        detections.append(detection) 
         
-        p1 = (int(face_2d[0][0]), int(face_2d[0][1]))
-        p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
-        cv2.line(image, p1, p2, (255,0,0), 2)
+    detections = np.array(detections)
+    
+    if detections.shape[0] > 0:
+        dets = detections[:, 0:6]
+        tracking = track.face_track(dets, image)
         
-        # check pose of face see the screen or not
-        rvec_matrix = cv2.Rodrigues(rotation_vector)[0]
-        proj_matrix = np.hstack((rvec_matrix, translation_vector))
-        eulerAngles = cv2.decomposeProjectionMatrix(proj_matrix)[6]
-        pitch, yaw, roll = [math.radians(_) for _ in eulerAngles]
-        pitch = math.degrees(math.asin(math.sin(pitch)))
-        yaw = math.degrees(math.asin(math.sin(yaw)))
-        roll = math.degrees(math.asin(math.sin(roll)))
+        for track in tracking:
+            t_x1, t_y1, t_x2, t_y2 = track[0:4]
+            id = track[4]
+            if id not in customer_dict:
+                customer_dict[id] = {"look count": 0, "look status": "not looking"}
+            cv2.putText(image, f"{id}", (int(t_x1), int(t_y1 - 50)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            cv2.rectangle(image, (int(t_x1), int(t_y1)), (int(t_x2), int(t_y2)), Color.green, 2)
             
-        if roll < -25:
-            cv2.putText(image, "-", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        elif roll > 25:
-            cv2.putText(image, "-", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-        else:
-            cv2.putText(image, "look detect", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+            # calculate pose of face with detection bbox and track bbox
+            for i, d_x1 in enumerate(detections[:, 0]):
+                print(f"t_x1: {int(t_x1)}, d_x1: {d_x1}")
+                
+                # check number distance between detection and track
+                if abs(t_x1 - d_x1) < 10:
+                    look_checker = detections[i][6]  
+                    print(f"id: {id} => {look_checker}")
+                    if look_checker == True:
+                        customer_dict[id]["look count"] += 1
+                        if customer_dict[id]["look count"] > 5:
+                            customer_dict[id]["look status"] = "looking"
+            
+    
+        # idx = [30, 8, 45, 36, 48, 54]
+        # face_2d = []
+        # for id in idx:
+        #     x, y, z = face.landmark_3d_68[id]
+        #     x = x * image.shape[1] / resized_img.shape[1]
+        #     y = y * image.shape[0] / resized_img.shape[0]
+        #     if id == 45:
+        #         x_text = int(x - 10)
+        #         y_text = int(y - 10)
+        #     # z = z * image.shape[1] / resized_img.shape[1]
+        #     cv2.circle(image, (int(x), int(y)), 2, Color.red, 6)
+            
+        #     face_2d.append((int(x), int(y)))
+        #     # face_3d.append((int(x), int(y), int(z)))
+        # face_2d = np.array(face_2d, dtype='double')
+        # (_, rotation_vector, translation_vector) = cv2.solvePnP(model_points, face_2d, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE)
+        # (nose_end_point2D, _) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rotation_vector, translation_vector, camera_matrix, dist_coeffs)
+        
+        # p1 = (int(face_2d[0][0]), int(face_2d[0][1]))
+        # p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+        # cv2.line(image, p1, p2, (255,0,0), 2)
+        
+        # # check pose of face see the screen or not
+        # rvec_matrix = cv2.Rodrigues(rotation_vector)[0]
+        # proj_matrix = np.hstack((rvec_matrix, translation_vector))
+        # eulerAngles = cv2.decomposeProjectionMatrix(proj_matrix)[6]
+        # pitch, yaw, roll = [math.radians(_) for _ in eulerAngles]
+        # pitch = math.degrees(math.asin(math.sin(pitch)))
+        # yaw = math.degrees(math.asin(math.sin(yaw)))
+        # roll = math.degrees(math.asin(math.sin(roll)))
+            
+        # if roll < -25:
+        #     cv2.putText(image, f"-", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        # elif roll > 25:
+        #     cv2.putText(image, f"-", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        # else:
+        #     cv2.putText(image, f"look detect", (x_text, y_text), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
 
 def main(model: DetectFasion, face_detect_model: FaceAnalysis, person_detect_model: YOLO):    
@@ -153,7 +198,7 @@ def main(model: DetectFasion, face_detect_model: FaceAnalysis, person_detect_mod
             cap2.grab()
 
         detect_person_cam1(model, frame1, id_dict, 0)
-        detect_face_cam2(person_detect_model, frame2, face_detect_model)
+        detect_face_cam2(person_detect_model, frame2, face_detect_model, tracker_model)
 
         if frame1.shape[0] != frame2.shape[0]:
             height, width, _ = frame1.shape
@@ -192,8 +237,10 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     personModel = YOLO(r"models\yolov8x.pt").to(device)
     fasionModel = YOLO(r"models\fashion_test.pt").to(device)
-    sort_tracker = create_tracker('strongsort', get_tracker_config('strongsort'), Path('models\osnet_x0_25_msmt17.pt'), device, False, False)
-    model = DetectFasion(personModel, fasionModel, sort_tracker)
+    strong_sort_tracker_1 = create_tracker('strongsort', get_tracker_config('strongsort'), Path('models\osnet_x0_25_msmt17.pt'), device, False, False)
+    strong_sort_tracker_2 = create_tracker('botsort', get_tracker_config('botsort'), Path("models\mobilenetv2_x1_0.pt"), device, False, False)
+    model = DetectFasion(personModel, fasionModel, strong_sort_tracker_1)
+    tracker_model = Tracker(strong_sort_tracker_2)
     # face_detect_model = DetectFace()
     face_detect_model = FaceAnalysis(root='./', providers=['CPUExecutionProvider'])
     face_detect_model.prepare(ctx_id=0, det_size=(640, 640))
