@@ -26,6 +26,8 @@ model_points = np.array([
 video_writer = cv2.VideoWriter(
         "test_beam.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (640, 480))
 
+customer_dict = {}
+
 def detect_person_cam1(model: DetectFasion, image:cv2.Mat, id_dict: dict, DICT_MAX_SIZE: int):
     person_imgs, track_ids = model.person_detect(image)
 
@@ -96,7 +98,6 @@ def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model
     # face_img.landmark_3d_68[54] # right mouth
     
     detections = []
-    customer_dict = {}
     for face in (face_imgs):   
         look_pose = False
         face.bbox = [face.bbox[0] * image.shape[1] / resized_img.shape[1],
@@ -124,23 +125,22 @@ def detect_face_cam2(person_detect_model: YOLO, image:cv2.Mat, face_detect_model
             t_x1, t_y1, t_x2, t_y2 = track[0:4]
             id = track[4]
             if id not in customer_dict:
-                customer_dict[id] = {"look count": 0, "look status": "not looking"}
+                customer_dict[id] = {"look_count": 0, "look_status": "not looking"}
             cv2.putText(image, f"{id}", (int(t_x1), int(t_y1 - 50)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
-            cv2.rectangle(image, (int(t_x1), int(t_y1)), (int(t_x2), int(t_y2)), Color.green, 2)
+            # cv2.rectangle(image, (int(t_x1), int(t_y1)), (int(t_x2), int(t_y2)), Color.green, 2)
             
             # calculate pose of face with detection bbox and track bbox
             for i, d_x1 in enumerate(detections[:, 0]):
-                print(f"t_x1: {int(t_x1)}, d_x1: {d_x1}")
+                # print(f"t_x1: {int(t_x1)}, d_x1: {d_x1}")
                 
                 # check number distance between detection and track
                 if abs(t_x1 - d_x1) < 10:
-                    look_checker = detections[i][6]  
-                    print(f"id: {id} => {look_checker}")
-                    if look_checker == True:
-                        customer_dict[id]["look count"] += 1
-                        if customer_dict[id]["look count"] > 5:
-                            customer_dict[id]["look status"] = "looking"
-            
+                    look_checker = detections[i][6]
+                    if look_checker and look_checker == True and customer_dict[id]["look_status"] == "not looking":
+                        customer_dict[id]["look_count"] = customer_dict[id]["look_count"] + 1
+                        if customer_dict[id]["look_count"] > 5:
+                            customer_dict[id]["look_status"] = "looking"
+    print(customer_dict)        
     
         # idx = [30, 8, 45, 36, 48, 54]
         # face_2d = []
